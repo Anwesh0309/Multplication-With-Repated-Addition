@@ -1,0 +1,125 @@
+import { useState, useCallback } from 'react';
+import IntroScreen from './components/multiplication/IntroScreen';
+import WonderPhase from './components/multiplication/WonderPhase';
+import StoryPhase from './components/multiplication/StoryPhase';
+import StationsPhase from './components/multiplication/StationsPhase';
+import ReflectCheck from './components/multiplication/ReflectCheck';
+import PracticeMode from './components/multiplication/PracticeMode';
+import SummaryScreen from './components/multiplication/SummaryScreen';
+import FloatingNumbers from './components/multiplication/FloatingNumbers';
+
+const PHASES = [
+  { id: 'wonder',   label: 'Wonder',   icon: '🔮', num: '01' },
+  { id: 'story',    label: 'Story',    icon: '📖', num: '02' },
+  { id: 'stations', label: 'Simulate', icon: '🧪', num: '03' },
+  { id: 'practice', label: 'Play',     icon: '🎮', num: '04' },
+  { id: 'reflect',  label: 'Reflect',  icon: '📓', num: '05' },
+];
+
+const STORAGE_KEY = 'intellia_multiplication_repeated_addition_v1';
+
+function saveProgress(state) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, timestamp: Date.now() })); } catch {}
+}
+
+export default function App() {
+  const [phase, setPhase]             = useState('intro');
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [learnDone, setLearnDone]     = useState(false);
+  const [practiceStats, setPracticeStats] = useState(null);
+
+  const goHome = useCallback(() => setPhase('intro'), []);
+
+  const handleWonderComplete  = useCallback(() => setPhase('story'), []);
+  const handleStoryComplete   = useCallback(() => setPhase('stations'), []);
+  const handleStationsComplete = useCallback(() => { setLearnDone(true); setPhase('practice'); }, []);
+  const handlePracticeComplete = useCallback((stats) => {
+    setPracticeStats(stats);
+    saveProgress({ phase: 'reflect', stats });
+    setPhase('reflect');
+  }, []);
+  const handleReflectComplete = useCallback(() => {
+    saveProgress({ phase: 'summary', stats: practiceStats });
+    setPhase('summary');
+  }, [practiceStats]);
+
+  const handleRestart = useCallback(() => {
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    setPhase('intro');
+    setPracticeStats(null);
+    setLearnDone(false);
+  }, []);
+
+  // Gate practice behind learn phase
+  const handlePracticeRequest = useCallback(() => {
+    if (learnDone) {
+      setPhase('practice');
+    } else {
+      setPhase('wonder');
+    }
+  }, [learnDone]);
+
+  const currentPhaseIndex = PHASES.findIndex(p => p.id === phase);
+
+  return (
+    <>
+      <FloatingNumbers />
+      <div className="app-container">
+        {/* Audio toggle */}
+        <button onClick={() => setAudioEnabled(a => !a)} className="audio-toggle-btn" aria-label="Toggle audio">
+          {audioEnabled ? '🔊' : '🔇'}
+        </button>
+
+        {/* Journey progress bar */}
+        {phase !== 'intro' && phase !== 'summary' && (
+          <div className="journey-bar">
+            {PHASES.map((p, i) => (
+              <div key={p.id} className={`journey-step ${p.id === phase ? 'active' : i < currentPhaseIndex ? 'completed' : ''}`}>
+                <div className="journey-step-dot">
+                  {i < currentPhaseIndex ? '✓' : p.num}
+                </div>
+                <span className="journey-step-label">{p.icon} {p.label}</span>
+                {i < PHASES.length - 1 && (
+                  <div className={`journey-connector ${i < currentPhaseIndex ? 'filled' : ''}`} />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Home button */}
+        {phase !== 'intro' && phase !== 'summary' && (
+          <button className="home-btn" onClick={goHome} aria-label="Go home">🏠 Home</button>
+        )}
+
+        {/* Phases */}
+        {phase === 'intro' && (
+          <IntroScreen
+            onStart={() => setPhase('wonder')}
+            onPractice={handlePracticeRequest}
+            audioEnabled={audioEnabled}
+            learnDone={learnDone}
+          />
+        )}
+        {phase === 'wonder' && (
+          <WonderPhase onComplete={handleWonderComplete} audioEnabled={audioEnabled} />
+        )}
+        {phase === 'story' && (
+          <StoryPhase onComplete={handleStoryComplete} audioEnabled={audioEnabled} />
+        )}
+        {phase === 'stations' && (
+          <StationsPhase onComplete={handleStationsComplete} audioEnabled={audioEnabled} />
+        )}
+        {phase === 'practice' && (
+          <PracticeMode onComplete={handlePracticeComplete} audioEnabled={audioEnabled} />
+        )}
+        {phase === 'reflect' && (
+          <ReflectCheck onComplete={handleReflectComplete} audioEnabled={audioEnabled} />
+        )}
+        {phase === 'summary' && (
+          <SummaryScreen stats={practiceStats} onRestart={handleRestart} onGoHome={goHome} audioEnabled={audioEnabled} />
+        )}
+      </div>
+    </>
+  );
+}
