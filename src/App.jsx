@@ -7,6 +7,7 @@ import ReflectCheck from './components/multiplication/ReflectCheck';
 import PracticeMode from './components/multiplication/PracticeMode';
 import SummaryScreen from './components/multiplication/SummaryScreen';
 import FloatingNumbers from './components/multiplication/FloatingNumbers';
+import { stopNarration } from './utils/audio';
 
 const PHASES = [
   { id: 'wonder',   label: 'Wonder',   icon: '🔮', num: '01' },
@@ -66,7 +67,16 @@ export default function App() {
       <FloatingNumbers />
       <div className="app-container">
         {/* Audio toggle */}
-        <button onClick={() => setAudioEnabled(a => !a)} className="audio-toggle-btn" aria-label="Toggle audio">
+        <button
+          onClick={() => {
+            setAudioEnabled(a => {
+              if (a) stopNarration(); // immediately stop any playing audio when muting
+              return !a;
+            });
+          }}
+          className="audio-toggle-btn"
+          aria-label="Toggle audio"
+        >
           {audioEnabled ? '🔊' : '🔇'}
         </button>
 

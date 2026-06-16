@@ -27,7 +27,7 @@ export default function IntroScreen({ onStart, onPractice, audioEnabled, learnDo
 
   return (
     <div className="intro-screen">
-      <div className="intro-badge">✨ Singapore MOE Curriculum · Grade 1 Maths</div>
+      <div className="intro-badge">✨ Singapore MOE Curriculum · Grade 2 Maths</div>
 
       <h1 className="intro-title">
         <span style={{ color: 'var(--coral)' }}>Multiplication</span>{' '}as{' '}
